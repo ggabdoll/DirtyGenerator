@@ -116,7 +116,9 @@ public class Generator extends AnAction {
 
     WriteCommandAction.runWriteCommandAction(project, () -> {
       // PSI 변경 작업 수행
-      psiClass.add(dirtyFiled);
+
+      // dirtyField를 target인 filed 밑에 붙여준다.
+      psiClass.addAfter(dirtyFiled, field);
 
       // Document 변경 작업 수행 (선택적)
       if (document != null) {
@@ -124,7 +126,6 @@ public class Generator extends AnAction {
       }
     });
 
-    // psiClass.add(dirtyFiled);
   }
 
 
