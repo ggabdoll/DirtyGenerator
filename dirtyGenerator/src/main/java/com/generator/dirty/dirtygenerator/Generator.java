@@ -5,7 +5,9 @@ import static org.codehaus.plexus.util.StringUtils.capitalizeFirstLetter;
 import com.intellij.openapi.actionSystem.AnAction;
 import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
+import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.editor.Caret;
+import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogBuilder;
@@ -13,12 +15,12 @@ import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiClass;
+import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiElementFactory;
 import com.intellij.psi.PsiField;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiJavaFile;
 import com.intellij.psi.PsiMethod;
-import com.intellij.psi.PsiParameter;
 import com.intellij.psi.PsiStatement;
 import com.intellij.psi.util.PsiUtilBase;
 import java.util.Arrays;
@@ -103,11 +105,26 @@ public class Generator extends AnAction {
     PsiElementFactory elementFactory = JavaPsiFacade.getElementFactory(psiClass.getProject());
 
     String dirtyText = "@JsonIgnore \n"
-        + "is" + capitalizeFirstLetter(field.getName()) + "Dirty = false";
+        + "Boolean " + "is" + capitalizeFirstLetter(field.getName()) + "Dirty = false;";
 
     PsiField dirtyFiled = elementFactory.createFieldFromText(dirtyText, psiClass);
 
-    psiClass.add(dirtyFiled);
+    // Document 변경 작업을 포함한 PSI 변경 작업
+    PsiFile psiFile = psiClass.getContainingFile();
+    Project project = psiClass.getProject();
+    Document document = PsiDocumentManager.getInstance(project).getDocument(psiFile);
+
+    WriteCommandAction.runWriteCommandAction(project, () -> {
+      // PSI 변경 작업 수행
+      psiClass.add(dirtyFiled);
+
+      // Document 변경 작업 수행 (선택적)
+      if (document != null) {
+        document.setText(psiFile.getText());
+      }
+    });
+
+    // psiClass.add(dirtyFiled);
   }
 
 
@@ -119,16 +136,16 @@ public class Generator extends AnAction {
     String parameterType = field.getType().getCanonicalText();
 
     // 이미 같은 이름의 메소드가 있는지 확인
-    PsiMethod[] existingMethods = psiClass.findMethodsByName(setterMethodName, true);
-    for (PsiMethod existingMethod : existingMethods) {
-      PsiParameter[] parameters = existingMethod.getParameterList().getParameters();
-      if (parameters.length == 1 && parameters[0].getType().getCanonicalText()
-          .equals(parameterType)) {
-        // 이미 같은 시그니처의 메소드가 있으면 필드 변경 코드를 추가
-        addDirtyFieldAssignment(existingMethod, psiClass, field);
-        return;
-      }
-    }
+//    PsiMethod[] existingMethods = psiClass.findMethodsByName(setterMethodName, true);
+//    for (PsiMethod existingMethod : existingMethods) {
+//      PsiParameter[] parameters = existingMethod.getParameterList().getParameters();
+//      if (parameters.length == 1 && parameters[0].getType().getCanonicalText()
+//          .equals(parameterType)) {
+//        // 이미 같은 시그니처의 메소드가 있으면 필드 변경 코드를 추가
+//        addDirtyFieldAssignment(existingMethod, psiClass, field);
+//        return;
+//      }
+//    }
 
     // Setter 메소드 생성
     String setterText =
@@ -139,8 +156,23 @@ public class Generator extends AnAction {
 
     PsiMethod setterMethod = elementFactory.createMethodFromText(setterText, psiClass);
 
-    // 메소드를 클래스에 추가
-    psiClass.add(setterMethod);
+    // Document 변경 작업을 포함한 PSI 변경 작업
+    PsiFile psiFile = psiClass.getContainingFile();
+    Project project = psiClass.getProject();
+    Document document = PsiDocumentManager.getInstance(project).getDocument(psiFile);
+
+    WriteCommandAction.runWriteCommandAction(project, () -> {
+      // PSI 변경 작업 수행
+      psiClass.add(setterMethod);
+
+      // Document 변경 작업 수행 (선택적)
+      if (document != null) {
+        document.setText(psiFile.getText());
+      }
+    });
+
+//    // 메소드를 클래스에 추가
+//    psiClass.add(setterMethod);
   }
 
   private void addDirtyFieldAssignment(PsiMethod setterMethod, PsiClass psiClass, PsiField field) {
