@@ -10,8 +10,6 @@ import com.intellij.openapi.editor.Caret;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.project.Project;
-import com.intellij.openapi.ui.DialogBuilder;
-import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiClass;
@@ -23,11 +21,7 @@ import com.intellij.psi.PsiJavaFile;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiStatement;
 import com.intellij.psi.util.PsiUtilBase;
-import java.util.Arrays;
 import java.util.List;
-import javax.swing.DefaultListModel;
-import javax.swing.JList;
-import javax.swing.JScrollPane;
 
 public class Generator extends AnAction {
 
@@ -57,9 +51,9 @@ public class Generator extends AnAction {
 
     // 필드들을 가져와 선택 가능한 UI 생성
     PsiField[] fields = psiClass.getFields();
-    List<PsiField> selectedFields = showFieldSelectionDialog(fields, e.getProject());
+    List<PsiField> selectedFields = showFieldSelectionDialog(psiClass, e.getProject());
     if (selectedFields.isEmpty()) {
-      Messages.showInfoMessage("No fields selected.", "Code Generation");
+//      Messages.showInfoMessage("No fields selected.", "Code Generation");
       return;
     }
 
@@ -71,33 +65,46 @@ public class Generator extends AnAction {
       createSetterMethod(psiClass, selectedField);
     }
 
-    Messages.showInfoMessage("dirty generated successfully!", "Code Generation");
+    //Messages.showInfoMessage("dirty generated successfully!", "Code Generation");
 
     // TODO: insert action logic here
   }
 
-  private List<PsiField> showFieldSelectionDialog(PsiField[] fields, Project project) {
-    DialogBuilder builder = new DialogBuilder(project);
+  private List<PsiField> showFieldSelectionDialog(PsiClass psiClass, Project project) {
 
-    // 리스트 박스에 필드 목록 추가
-    DefaultListModel<PsiField> listModel = new DefaultListModel<>();
-    for (PsiField field : fields) {
-      listModel.addElement(field);
-    }
+    FieldSelectionDialog dialog = new FieldSelectionDialog(project, psiClass);
 
-    JList<PsiField> fieldList = new JList<>(listModel);
-    builder.setTitle("Select Fields");
-    builder.setCenterPanel(new JScrollPane(fieldList));
-
-    builder.addOkAction();
-    builder.addCancelAction();
-
-    if (builder.show() == DialogWrapper.OK_EXIT_CODE) {
-      // 사용자가 OK를 누른 경우 선택한 필드 목록 반환
-      return Arrays.asList(fieldList.getSelectedValuesList().toArray(new PsiField[0]));
+    if (dialog.showAndGet()) {
+      return dialog.getSelectedFields();
     } else {
-      return List.of(); // 취소된 경우 빈 목록 반환
+      return List.of();
     }
+
+//    DialogBuilder builder = new DialogBuilder(project);
+//
+//
+//
+//    // 리스트 박스에 필드 목록 추가
+//    DefaultListModel<PsiField> listModel = new DefaultListModel<>();
+//    for (PsiField field : fields) {
+//      listModel.addElement(field);
+//    }
+//
+//    JList<PsiField> fieldList = new JList<>(listModel);
+//    builder.setTitle("Select Fields to Generate Dirty");
+//    JScrollPane scrollPane = new JScrollPane(fieldList);
+//    scrollPane.setPreferredSize(new Dimension(400, 300));
+//    builder.setCenterPanel(new JScrollPane(scrollPane));
+//
+//    builder.addOkAction();
+//    builder.addCancelAction();
+//
+//    if (builder.show() == DialogWrapper.OK_EXIT_CODE) {
+//      // 사용자가 OK를 누른 경우 선택한 필드 목록 반환
+//      return Arrays.asList(fieldList.getSelectedValuesList().toArray(new PsiField[0]));
+//    } else {
+//      return List.of(); // 취소된 경우 빈 목록 반환
+//    }
   }
 
 
@@ -105,7 +112,7 @@ public class Generator extends AnAction {
     PsiElementFactory elementFactory = JavaPsiFacade.getElementFactory(psiClass.getProject());
 
     String dirtyText = "@JsonIgnore \n"
-        + "Boolean " + "is" + capitalizeFirstLetter(field.getName()) + "Dirty = false;";
+        + "private Boolean " + "is" + capitalizeFirstLetter(field.getName()) + "Dirty = false;";
 
     PsiField dirtyFiled = elementFactory.createFieldFromText(dirtyText, psiClass);
 

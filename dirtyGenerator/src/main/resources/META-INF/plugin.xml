@@ -8,14 +8,16 @@
   <name>DirtyGenerator</name>
 
   <!-- A displayed Vendor name or Organization ID displayed on the Plugins Page. -->
-  <vendor email="support@yourcompany.com" url="https://www.yourcompany.com">YourCompany</vendor>
+  <vendor email="ggabdoll0327@gmail.com" url="https://github.com/ggabdoll/DirtyGenerator">
+    famousGGabdoll
+  </vendor>
 
   <!-- Description of the plugin displayed on the Plugin Page and IDE Plugin Manager.
        Simple HTML elements (text formatting, paragraphs, and lists) can be added inside of <![CDATA[ ]]> tag.
        Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-description -->
   <description><![CDATA[
-    Enter short description for your plugin here.<br>
-    <em>most HTML tags may be used</em>
+    Model의 field를 선택해서 'is{fieldName}Dirty = false;' 를 생성해주고 setter에 dirty를 true로 만들어줍니당.<br>
+    <em>나는 Dirty쓰기가 귀찮다.</em>
   ]]></description>
 
   <!-- Product and plugin compatibility requirements.
@@ -29,7 +31,8 @@
 
   </extensions>
   <actions>
-    <action id="generateDirty" class="com.generator.dirty.dirtygenerator.Generator" text="더티생성"
+    <action id="generateDirty" class="com.generator.dirty.dirtygenerator.Generator"
+      text="GenerateDirty"
       description="더티 생성해준다.">
       <add-to-group group-id="GenerateGroup" anchor="first"/>
     </action>
