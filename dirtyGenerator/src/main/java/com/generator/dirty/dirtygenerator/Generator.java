@@ -10,6 +10,8 @@ import com.intellij.openapi.editor.Caret;
 import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.project.Project;
+import com.intellij.openapi.ui.DialogBuilder;
+import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.ui.Messages;
 import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiClass;
@@ -21,7 +23,16 @@ import com.intellij.psi.PsiJavaFile;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.PsiStatement;
 import com.intellij.psi.util.PsiUtilBase;
+import com.intellij.ui.components.JBList;
+import com.intellij.ui.components.JBScrollPane;
+import java.awt.Component;
+import java.awt.Dimension;
+import java.util.Arrays;
 import java.util.List;
+import javax.swing.DefaultListCellRenderer;
+import javax.swing.DefaultListModel;
+import javax.swing.JLabel;
+import javax.swing.JList;
 
 public class Generator extends AnAction {
 
@@ -72,39 +83,62 @@ public class Generator extends AnAction {
 
   private List<PsiField> showFieldSelectionDialog(PsiClass psiClass, Project project) {
 
-    FieldSelectionDialog dialog = new FieldSelectionDialog(project, psiClass);
-
-    if (dialog.showAndGet()) {
-      return dialog.getSelectedFields();
-    } else {
-      return List.of();
-    }
-
-//    DialogBuilder builder = new DialogBuilder(project);
+//    FieldSelectionDialog dialog = new FieldSelectionDialog(project, psiClass);
 //
-//
-//
-//    // 리스트 박스에 필드 목록 추가
-//    DefaultListModel<PsiField> listModel = new DefaultListModel<>();
-//    for (PsiField field : fields) {
-//      listModel.addElement(field);
+//    if (dialog.showAndGet()) {
+//      return dialog.getSelectedFields();
+//    } else {
+//      return List.of();
 //    }
-//
-//    JList<PsiField> fieldList = new JList<>(listModel);
-//    builder.setTitle("Select Fields to Generate Dirty");
+
+    DialogBuilder builder = new DialogBuilder(project);
+
+    // title
+    builder.setTitle(
+        "Select Fields for Dirty Generation");
+
+    // 클래스 이름
+    JLabel classNameLabel = new JLabel("Class: " + psiClass.getQualifiedName());
+
+    builder.setNorthPanel(classNameLabel);
+
+//    builder.centerPanel(classNameLabel);
+
+    // 리스트 박스에 필드 목록 추가
+    DefaultListModel<PsiField> listModel = new DefaultListModel<>();
+    Arrays.stream(psiClass.getFields())
+        .filter(field -> !field.hasModifierProperty("static"))
+        .forEach(listModel::addElement);
+
+    // JBList
+    JBList<PsiField> fieldList = new JBList<>(listModel);
+
+    // JBScrollpane
+    JBScrollPane scrollPane = new JBScrollPane(fieldList);
+
+    // 사용자 정의된 ListCellRenderer를 사용하여 필드 정보를 보여주기
+    fieldList.setCellRenderer(new FieldListCellRenderer());
+
+    scrollPane.setPreferredSize(new Dimension(400, 500));
+
+    // builder에 set
+    builder.setCenterPanel(new JBScrollPane(scrollPane));
+
+    // 버튼 action 할당
+    builder.addOkAction();
+    builder.addCancelAction();
+
 //    JScrollPane scrollPane = new JScrollPane(fieldList);
 //    scrollPane.setPreferredSize(new Dimension(400, 300));
 //    builder.setCenterPanel(new JScrollPane(scrollPane));
 //
-//    builder.addOkAction();
-//    builder.addCancelAction();
 //
-//    if (builder.show() == DialogWrapper.OK_EXIT_CODE) {
-//      // 사용자가 OK를 누른 경우 선택한 필드 목록 반환
-//      return Arrays.asList(fieldList.getSelectedValuesList().toArray(new PsiField[0]));
-//    } else {
-//      return List.of(); // 취소된 경우 빈 목록 반환
-//    }
+    if (builder.show() == DialogWrapper.OK_EXIT_CODE) {
+      // 사용자가 OK를 누른 경우 선택한 필드 목록 반환
+      return Arrays.asList(fieldList.getSelectedValuesList().toArray(new PsiField[0]));
+    } else {
+      return List.of(); // 취소된 경우 빈 목록 반환
+    }
   }
 
 
@@ -204,5 +238,24 @@ public class Generator extends AnAction {
     setterMethod.getBody().addBefore(assignmentStatement, null);
   }
 
+
+  // 사용자 정의 ListCellRenderer
+  private static class FieldListCellRenderer extends DefaultListCellRenderer {
+
+    @Override
+    public Component getListCellRendererComponent(JList<?> list, Object value, int index,
+        boolean isSelected, boolean cellHasFocus) {
+      if (value instanceof PsiField) {
+        PsiField field = (PsiField) value;
+        String icon = "\uD83D\uDCCC ";
+        String fieldName = field.getName();
+        String fieldType = field.getType().getPresentableText();
+        String displayText = icon + fieldName + " : " + fieldType;
+        return super.getListCellRendererComponent(list, displayText, index, isSelected,
+            cellHasFocus);
+      }
+      return super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
+    }
+  }
 
 }
