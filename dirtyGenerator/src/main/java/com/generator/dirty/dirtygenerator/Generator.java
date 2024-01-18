@@ -21,7 +21,6 @@ import com.intellij.psi.PsiField;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiJavaFile;
 import com.intellij.psi.PsiMethod;
-import com.intellij.psi.PsiStatement;
 import com.intellij.psi.util.PsiUtilBase;
 import com.intellij.ui.components.JBList;
 import com.intellij.ui.components.JBScrollPane;
@@ -57,6 +56,8 @@ public class Generator extends AnAction {
       Messages.showErrorDialog("Please open a Java file.", "Error");
       return;
     }
+    // ======== File Validation 끝
+
     PsiJavaFile javaFile = (PsiJavaFile) psiFile;
     PsiClass psiClass = javaFile.getClasses()[0]; // 첫 번째 클래스를 대상으로 가정
 
@@ -77,8 +78,6 @@ public class Generator extends AnAction {
     }
 
     //Messages.showInfoMessage("dirty generated successfully!", "Code Generation");
-
-    // TODO: insert action logic here
   }
 
   private List<PsiField> showFieldSelectionDialog(PsiClass psiClass, Project project) {
@@ -101,8 +100,6 @@ public class Generator extends AnAction {
     JLabel classNameLabel = new JLabel("Class: " + psiClass.getQualifiedName());
 
     builder.setNorthPanel(classNameLabel);
-
-//    builder.centerPanel(classNameLabel);
 
     // 리스트 박스에 필드 목록 추가
     DefaultListModel<PsiField> listModel = new DefaultListModel<>();
@@ -165,6 +162,7 @@ public class Generator extends AnAction {
       if (document != null) {
         document.setText(psiFile.getText());
       }
+      PsiDocumentManager.getInstance(project).doPostponedOperationsAndUnblockDocument(document);
     });
 
   }
@@ -211,32 +209,33 @@ public class Generator extends AnAction {
       if (document != null) {
         document.setText(psiFile.getText());
       }
+      PsiDocumentManager.getInstance(project).doPostponedOperationsAndUnblockDocument(document);
     });
 
 //    // 메소드를 클래스에 추가
 //    psiClass.add(setterMethod);
   }
 
-  private void addDirtyFieldAssignment(PsiMethod setterMethod, PsiClass psiClass, PsiField field) {
-    // 이미 있는 Setter 메소드에 필드 변경 코드를 추가
-    PsiStatement[] statements = setterMethod.getBody().getStatements();
-    String fieldName = field.getName();
-    String assignmentText = "this.is" + capitalizeFirstLetter(fieldName) + "Dirty = true;";
-
-    // 필드 변경 코드가 이미 있는지 확인
-    for (PsiStatement statement : statements) {
-      if (statement.getText().equals(assignmentText)) {
-        // 이미 있는 경우 중복 추가를 피하기 위해 종료
-        return;
-      }
-    }
-
-    // 필드 변경 코드 추가
-    PsiElementFactory elementFactory = JavaPsiFacade.getElementFactory(psiClass.getProject());
-    PsiStatement assignmentStatement = elementFactory.createStatementFromText(assignmentText,
-        psiClass);
-    setterMethod.getBody().addBefore(assignmentStatement, null);
-  }
+//  private void addDirtyFieldAssignment(PsiMethod setterMethod, PsiClass psiClass, PsiField field) {
+//    // 이미 있는 Setter 메소드에 필드 변경 코드를 추가
+//    PsiStatement[] statements = setterMethod.getBody().getStatements();
+//    String fieldName = field.getName();
+//    String assignmentText = "this.is" + capitalizeFirstLetter(fieldName) + "Dirty = true;";
+//
+//    // 필드 변경 코드가 이미 있는지 확인
+//    for (PsiStatement statement : statements) {
+//      if (statement.getText().equals(assignmentText)) {
+//        // 이미 있는 경우 중복 추가를 피하기 위해 종료
+//        return;
+//      }
+//    }
+//
+//    // 필드 변경 코드 추가
+//    PsiElementFactory elementFactory = JavaPsiFacade.getElementFactory(psiClass.getProject());
+//    PsiStatement assignmentStatement = elementFactory.createStatementFromText(assignmentText,
+//        psiClass);
+//    setterMethod.getBody().addBefore(assignmentStatement, null);
+//  }
 
 
   // 사용자 정의 ListCellRenderer
