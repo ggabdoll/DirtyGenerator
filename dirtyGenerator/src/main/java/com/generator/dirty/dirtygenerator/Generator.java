@@ -7,7 +7,6 @@ import com.intellij.openapi.actionSystem.AnActionEvent;
 import com.intellij.openapi.actionSystem.PlatformDataKeys;
 import com.intellij.openapi.command.WriteCommandAction;
 import com.intellij.openapi.editor.Caret;
-import com.intellij.openapi.editor.Document;
 import com.intellij.openapi.editor.Editor;
 import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogBuilder;
@@ -24,7 +23,7 @@ import com.intellij.psi.PsiMethod;
 import com.intellij.psi.util.PsiUtilBase;
 import com.intellij.ui.components.JBList;
 import com.intellij.ui.components.JBScrollPane;
-import com.intellij.util.concurrency.Invoker.Background;
+import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.util.Arrays;
@@ -90,19 +89,18 @@ public class Generator extends AnAction {
 //    } else {
 //      return List.of();
 //    }
-
     DialogBuilder builder = new DialogBuilder(project);
 
-    Background.
-
-        // title
-            builder.setTitle(
-        "Select Fields for Dirty Generation");
+    // title
+    builder.setTitle("Select Fields for Dirty Generation");
 
     // 클래스 이름
     JLabel classNameLabel = new JLabel("Class: " + psiClass.getQualifiedName());
 
+    // 클래스 이름 위에 박아두기
     builder.setNorthPanel(classNameLabel);
+
+    builder.getWindow().setBackground(Color.BLUE);
 
     // 리스트 박스에 필드 목록 추가
     DefaultListModel<PsiField> listModel = new DefaultListModel<>();
@@ -120,9 +118,18 @@ public class Generator extends AnAction {
     fieldList.setCellRenderer(new FieldListCellRenderer());
 
     scrollPane.setPreferredSize(new Dimension(400, 500));
+    scrollPane.getViewport().setBackground(new Color(64, 164, 216));
+    scrollPane.getViewport().setBackground(Color.blue);
 
     // builder에 set
     builder.setCenterPanel(new JBScrollPane(scrollPane));
+
+    builder.getCenterPanel().setBackground(Color.blue);
+    builder.getCenterPanel().setBackground(new Color(64, 164, 216));
+
+    builder.getCenterPanel().getBackground().brighter();
+
+    // TODO : 색을 바꿔보쟈
 
     // 버튼 action 할당
     builder.addOkAction();
@@ -153,19 +160,17 @@ public class Generator extends AnAction {
     // Document 변경 작업을 포함한 PSI 변경 작업
     PsiFile psiFile = psiClass.getContainingFile();
     Project project = psiClass.getProject();
-    Document document = PsiDocumentManager.getInstance(project).getDocument(psiFile);
-
     WriteCommandAction.runWriteCommandAction(project, () -> {
+      //Document document = PsiDocumentManager.getInstance(project).getDocument(psiFile);
+
       // PSI 변경 작업 수행
 
       // dirtyField를 target인 filed 밑에 붙여준다.
       psiClass.addAfter(dirtyFiled, field);
 
-      // Document 변경 작업 수행 (선택적)
-      if (document != null) {
-        document.setText(psiFile.getText());
-      }
-      PsiDocumentManager.getInstance(project).doPostponedOperationsAndUnblockDocument(document);
+      PsiDocumentManager.getInstance(project).doPostponedOperationsAndUnblockDocument(
+          PsiDocumentManager.getInstance(project).getDocument(psiFile)
+      );
     });
 
   }
@@ -197,26 +202,25 @@ public class Generator extends AnAction {
             "    this.is" + capitalizeFirstLetter(field.getName()) + "Dirty = true;" +
             "}";
 
-    PsiMethod setterMethod = elementFactory.createMethodFromText(setterText, psiClass);
-
     // Document 변경 작업을 포함한 PSI 변경 작업
     PsiFile psiFile = psiClass.getContainingFile();
     Project project = psiClass.getProject();
-    Document document = PsiDocumentManager.getInstance(project).getDocument(psiFile);
+    //Document document = PsiDocumentManager.getInstance(project).getDocument(psiFile);
 
     WriteCommandAction.runWriteCommandAction(project, () -> {
+      PsiMethod setterMethod = elementFactory.createMethodFromText(setterText, psiClass);
       // PSI 변경 작업 수행
       psiClass.add(setterMethod);
 
       // Document 변경 작업 수행 (선택적)
-      if (document != null) {
-        document.setText(psiFile.getText());
-      }
-      PsiDocumentManager.getInstance(project).doPostponedOperationsAndUnblockDocument(document);
+//      if (document != null) {
+//        document.setText(psiFile.getText());
+//      }
+      PsiDocumentManager.getInstance(project).doPostponedOperationsAndUnblockDocument(
+          PsiDocumentManager.getInstance(project).getDocument(psiFile)
+      );
     });
 
-//    // 메소드를 클래스에 추가
-//    psiClass.add(setterMethod);
   }
 
 //  private void addDirtyFieldAssignment(PsiMethod setterMethod, PsiClass psiClass, PsiField field) {
