@@ -24,6 +24,7 @@ import com.intellij.psi.PsiMethod;
 import com.intellij.psi.util.PsiUtilBase;
 import com.intellij.ui.components.JBList;
 import com.intellij.ui.components.JBScrollPane;
+import com.intellij.util.concurrency.Invoker.Background;
 import java.awt.Component;
 import java.awt.Dimension;
 import java.util.Arrays;
@@ -92,8 +93,10 @@ public class Generator extends AnAction {
 
     DialogBuilder builder = new DialogBuilder(project);
 
-    // title
-    builder.setTitle(
+    Background.
+
+        // title
+            builder.setTitle(
         "Select Fields for Dirty Generation");
 
     // 클래스 이름
