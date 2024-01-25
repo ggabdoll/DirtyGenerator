@@ -16,8 +16,7 @@
        Simple HTML elements (text formatting, paragraphs, and lists) can be added inside of <![CDATA[ ]]> tag.
        Guidelines: https://plugins.jetbrains.com/docs/marketplace/plugin-overview-page.html#plugin-description -->
   <description><![CDATA[
-    Model의 field를 선택해서 'is{fieldName}Dirty = false;' 를 생성해주고 setter에 dirty를 true로 만들어줍니당.<br>
-    <em>나는 Dirty쓰기가 귀찮다.</em>
+    Select Field in GenerateViewer to generate is${fileName}Dirty = false; You must use springFramework by pasting @JsonIgnore on the created DirtyField. It also creates an is${fileName} dirty = true; code in setterMethod in file, which means that the body contains that field. This is made easy to create UpdateDto. I'm so lazy to write Dirty.Happy coding
   ]]></description>
 
   <!-- Product and plugin compatibility requirements.
