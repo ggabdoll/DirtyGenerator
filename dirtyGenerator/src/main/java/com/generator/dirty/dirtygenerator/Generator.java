@@ -12,6 +12,7 @@ import com.intellij.openapi.project.Project;
 import com.intellij.openapi.ui.DialogBuilder;
 import com.intellij.openapi.ui.DialogWrapper;
 import com.intellij.openapi.ui.Messages;
+import com.intellij.openapi.util.IconLoader;
 import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiDocumentManager;
@@ -21,6 +22,7 @@ import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiJavaFile;
 import com.intellij.psi.PsiMethod;
 import com.intellij.psi.util.PsiUtilBase;
+import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBList;
 import com.intellij.ui.components.JBScrollPane;
 import java.awt.Color;
@@ -28,8 +30,10 @@ import java.awt.Component;
 import java.awt.Dimension;
 import java.util.Arrays;
 import java.util.List;
+import javax.swing.BorderFactory;
 import javax.swing.DefaultListCellRenderer;
 import javax.swing.DefaultListModel;
+import javax.swing.Icon;
 import javax.swing.JLabel;
 import javax.swing.JList;
 
@@ -248,17 +252,43 @@ public class Generator extends AnAction {
   // 사용자 정의 ListCellRenderer
   private static class FieldListCellRenderer extends DefaultListCellRenderer {
 
+
+    private static final int HORIZONTAL_PADDING = 10;
+    private static final int VERTICAL_PADDING = 5;
+
     @Override
     public Component getListCellRendererComponent(JList<?> list, Object value, int index,
         boolean isSelected, boolean cellHasFocus) {
       if (value instanceof PsiField) {
         PsiField field = (PsiField) value;
-        String icon = "\uD83D\uDCCC ";
+        Icon dirtyIcon = IconLoader.getIcon("/icons/iLove.svg", FieldListCellRenderer.class);
+
+        // String icon = "\uD83D\uDCCC ";
         String fieldName = field.getName();
         String fieldType = field.getType().getPresentableText();
-        String displayText = icon + fieldName + " : " + fieldType;
-        return super.getListCellRendererComponent(list, displayText, index, isSelected,
-            cellHasFocus);
+
+        // 내뱉을 text앞에 dirtyIcon 붙이기
+        JBLabel label = new JBLabel();
+        label.setIcon(dirtyIcon);
+        label.setText(fieldName + " : " + fieldType);
+
+        label.setBorder(
+            BorderFactory.createEmptyBorder(VERTICAL_PADDING, HORIZONTAL_PADDING, VERTICAL_PADDING,
+                HORIZONTAL_PADDING));
+
+        // Set foreground color based on selection
+        if (isSelected) {
+          label.setForeground(list.getSelectionForeground());
+          label.setBackground(list.getSelectionBackground());
+        } else {
+          label.setForeground(list.getForeground());
+          label.setBackground(list.getBackground());
+        }
+
+//        String displayText = dirtyIcon + fieldName + " : " + fieldType;
+//        return super.getListCellRendererComponent(list, label, index, isSelected,
+//            cellHasFocus);
+        return label;
       }
       return super.getListCellRendererComponent(list, value, index, isSelected, cellHasFocus);
     }
