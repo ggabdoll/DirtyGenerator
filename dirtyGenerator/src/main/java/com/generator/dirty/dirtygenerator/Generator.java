@@ -16,18 +16,20 @@ import com.intellij.openapi.util.IconLoader;
 import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiClass;
 import com.intellij.psi.PsiDocumentManager;
+import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementFactory;
 import com.intellij.psi.PsiField;
 import com.intellij.psi.PsiFile;
 import com.intellij.psi.PsiJavaFile;
 import com.intellij.psi.PsiMethod;
-import com.intellij.psi.util.PsiUtilBase;
+import com.intellij.psi.util.PsiTreeUtil;
 import com.intellij.ui.components.JBLabel;
 import com.intellij.ui.components.JBList;
 import com.intellij.ui.components.JBScrollPane;
 import java.awt.Color;
 import java.awt.Component;
 import java.awt.Dimension;
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.List;
 import javax.swing.BorderFactory;
@@ -49,7 +51,11 @@ public class Generator extends AnAction {
     }
 
     Caret caret = editor.getCaretModel().getPrimaryCaret();
-    PsiFile psiFile = PsiUtilBase.getPsiFileInEditor(caret, e.getProject());
+
+    int offset = caret.getOffset();
+
+//    PsiFile psiFile = PsiUtilBase.getPsiFileInEditor(caret, e.getProject());
+    PsiFile psiFile = e.getData(PlatformDataKeys.PSI_FILE);
     if (psiFile == null) {
       Messages.showErrorDialog("Please open a file in the editor.", "Error");
       return;
@@ -62,20 +68,39 @@ public class Generator extends AnAction {
     }
     // ======== File Validation 끝
 
-    PsiJavaFile javaFile = (PsiJavaFile) psiFile;
-    PsiClass psiClass = javaFile.getClasses()[0]; // 첫 번째 클래스를 대상으로 가정
+    // ======== Class Validation
+    PsiClass[] classes = ((PsiJavaFile) psiFile).getClasses();
+    if (classes.length == 0) {
+      Messages.showErrorDialog("No classes found in the file.", "Error");
+      return;
+    }
+
+    //PsiJavaFile javaFile = (PsiJavaFile) psiFile;
+
+//    PsiClass psiClass = classes[0];// 첫 번째 클래스를 대상으로 가정
+
+    // 클래스 찾기
+    PsiClass psiClass = findPsiClass(psiFile, offset);
+
+    List<PsiField> fields = getAllFields(psiClass);
+
+    if (fields.isEmpty()) {
+      Messages.showInfoMessage("No fields found in the class.", "Info");
+      return;
+    }
 
     // 필드들을 가져와 선택 가능한 UI 생성
-    PsiField[] fields = psiClass.getFields();
-    List<PsiField> selectedFields = showFieldSelectionDialog(psiClass, e.getProject());
+    //PsiField[] fields = psiClass.getFields();
+    List<PsiField> selectedFields = showFieldSelectionDialog(psiClass, fields, e.getProject());
     if (selectedFields.isEmpty()) {
-//      Messages.showInfoMessage("No fields selected.", "Code Generation");
+      //      Messages.showInfoMessage("No fields selected.", "Code Generation");
       return;
     }
 
     // dirtyFiled
     // setterMethod 생성
-    for (PsiField selectedField : selectedFields) {
+    for (
+        PsiField selectedField : selectedFields) {
 
       createDirtyFiled(psiClass, selectedField);
       createSetterMethod(psiClass, selectedField);
@@ -84,7 +109,33 @@ public class Generator extends AnAction {
     //Messages.showInfoMessage("dirty generated successfully!", "Code Generation");
   }
 
-  private List<PsiField> showFieldSelectionDialog(PsiClass psiClass, Project project) {
+
+  /*
+   *  methodName  : findPsiClass
+   *  description : offset을 기반으로 class를 찾는다.
+   */
+  private PsiClass findPsiClass(PsiFile psiFile, int offset) {
+    // PsiFile 내에서 클래스 요소를 찾아 반환합니다.
+
+    // innerClass에서 작동하도록
+    PsiElement element = psiFile.findElementAt(offset);
+    return PsiTreeUtil.getParentOfType(element, PsiClass.class);
+  }
+
+  private List<PsiField> getAllFields(PsiClass psiClass) {
+    List<PsiField> fields = new ArrayList<>();
+    PsiField[] psiFields = psiClass.getFields();
+    fields.addAll(Arrays.asList(psiFields));
+//    PsiClass[] innerClasses = psiClass.getInnerClasses();
+//    for (PsiClass innerClass : innerClasses) {
+//      fields.addAll(getAllFields(innerClass)); // Recursively fetch fields from inner classes
+//    }
+    return fields;
+  }
+
+
+  private List<PsiField> showFieldSelectionDialog(PsiClass psiClass, List<PsiField> fields,
+      Project project) {
 
 //    FieldSelectionDialog dialog = new FieldSelectionDialog(project, psiClass);
 //
@@ -108,9 +159,12 @@ public class Generator extends AnAction {
 
     // 리스트 박스에 필드 목록 추가
     DefaultListModel<PsiField> listModel = new DefaultListModel<>();
-    Arrays.stream(psiClass.getFields())
-        .filter(field -> !field.hasModifierProperty("static"))
+
+    fields.stream().filter(field -> !field.hasModifierProperty("static"))
         .forEach(listModel::addElement);
+//    Arrays.stream(psiClass.getFields())
+//        .filter(field -> !field.hasModifierProperty("static"))
+//        .forEach(listModel::addElement);
 
     // JBList
     JBList<PsiField> fieldList = new JBList<>(listModel);
@@ -146,7 +200,8 @@ public class Generator extends AnAction {
 //
     if (builder.show() == DialogWrapper.OK_EXIT_CODE) {
       // 사용자가 OK를 누른 경우 선택한 필드 목록 반환
-      return Arrays.asList(fieldList.getSelectedValuesList().toArray(new PsiField[0]));
+      return fieldList.getSelectedValuesList();
+//      return Arrays.asList(fieldList.getSelectedValuesList().toArray(new PsiField[0]));
     } else {
       return List.of(); // 취소된 경우 빈 목록 반환
     }
@@ -183,6 +238,19 @@ public class Generator extends AnAction {
   private void createSetterMethod(PsiClass psiClass, PsiField field) {
     PsiElementFactory elementFactory = JavaPsiFacade.getElementFactory(psiClass.getProject());
 
+    // inner class를 찾는다.
+    PsiClass[] innerClasses = psiClass.getInnerClasses();
+
+    // 마지막 class
+    PsiClass lasInnerClass;
+
+    if (innerClasses.length > 0) {
+
+      lasInnerClass = innerClasses[innerClasses.length - 1];
+    } else {
+      lasInnerClass = null;
+    }
+
     // Setter 메소드의 이름 및 매개변수 타입
     String setterMethodName = "set" + capitalizeFirstLetter(field.getName());
     String parameterType = field.getType().getCanonicalText();
@@ -214,7 +282,14 @@ public class Generator extends AnAction {
     WriteCommandAction.runWriteCommandAction(project, () -> {
       PsiMethod setterMethod = elementFactory.createMethodFromText(setterText, psiClass);
       // PSI 변경 작업 수행
-      psiClass.add(setterMethod);
+
+      if (lasInnerClass != null) {
+        psiClass.addAfter(setterMethod, lasInnerClass);
+      }
+
+      if (lasInnerClass == null) {
+        psiClass.add(setterMethod);
+      }
 
       // Document 변경 작업 수행 (선택적)
 //      if (document != null) {
