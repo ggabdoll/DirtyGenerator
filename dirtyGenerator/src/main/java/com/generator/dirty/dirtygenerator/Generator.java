@@ -15,6 +15,7 @@ import com.intellij.openapi.ui.Messages;
 import com.intellij.openapi.util.IconLoader;
 import com.intellij.psi.JavaPsiFacade;
 import com.intellij.psi.PsiClass;
+import com.intellij.psi.PsiComment;
 import com.intellij.psi.PsiDocumentManager;
 import com.intellij.psi.PsiElement;
 import com.intellij.psi.PsiElementFactory;
@@ -216,6 +217,10 @@ public class Generator extends AnAction {
 
     PsiField dirtyFiled = elementFactory.createFieldFromText(dirtyText, psiClass);
 
+    String commentText = "/* " + field.getName() + " */";
+
+    PsiComment comment = elementFactory.createCommentFromText(commentText, psiClass);
+
     // Document 변경 작업을 포함한 PSI 변경 작업
     PsiFile psiFile = psiClass.getContainingFile();
     Project project = psiClass.getProject();
@@ -223,6 +228,9 @@ public class Generator extends AnAction {
       //Document document = PsiDocumentManager.getInstance(project).getDocument(psiFile);
 
       // PSI 변경 작업 수행
+
+      // field 위에 field 이름 주석을 달아준다.
+      psiClass.addBefore(comment, field);
 
       // dirtyField를 target인 filed 밑에 붙여준다.
       psiClass.addAfter(dirtyFiled, field);
